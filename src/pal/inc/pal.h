@@ -522,6 +522,16 @@ PAL_Random(
 PALIMPORT
 BOOL
 PALAPI
+PAL_ReadMemory(
+    IN DWORD processId,
+    IN LPCVOID lpBaseAddress,
+    IN LPVOID lpBuffer,
+    IN SIZE_T nSize,
+    OUT SIZE_T* lpNumberOfBytesRead);
+
+PALIMPORT
+BOOL
+PALAPI
 PAL_ProbeMemory(
     PVOID pBuffer,
     DWORD cbBuffer,

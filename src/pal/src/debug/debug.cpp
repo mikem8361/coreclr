@@ -54,6 +54,7 @@ SET_DEFAULT_DEBUG_CHANNEL(DEBUG); // some headers have code with asserts, so do 
 #endif  // HAVE_PROCFS_CTL
 #if HAVE_VM_READ
 #include <mach/mach.h>
+#include <Security/Authorization.h>
 #endif  // HAVE_VM_READ
 #include <errno.h>
 #include <sys/types.h>
@@ -539,6 +540,202 @@ SetThreadContext(
         pobjThread->ReleaseReference(pThread);
     }
 
+    return ret;
+}
+
+#if HAVE_VM_READ
+int acquireTaskportRight() 
+{
+    OSStatus stat; 
+    AuthorizationItem taskport_item[] = {{"system.privilege.taskport:"}}; 
+    AuthorizationRights rights = {1, taskport_item}, *out_rights = NULL; 
+    AuthorizationRef author; 
+    int retval = 0;
+
+    AuthorizationFlags auth_flags = kAuthorizationFlagExtendRights | kAuthorizationFlagPreAuthorize | kAuthorizationFlagInteractionAllowed | ( 1 << 5);
+
+    stat = AuthorizationCreate (NULL, kAuthorizationEmptyEnvironment, auth_flags, &author);
+    if (stat != errAuthorizationSuccess) 
+    { 
+        return 0;
+    }
+
+    stat = AuthorizationCopyRights ( author, &rights, kAuthorizationEmptyEnvironment, auth_flags, &out_rights);
+    if (stat != errAuthorizationSuccess) 
+    { 
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+/*++
+Function:
+  PAL_ReadMemory
+
+Abstract
+  Reads memory on macOS. Return error for any other platform.
+
+Parameter
+  processId : process to read from
+  lpBaseAddress : address of memory to read
+  lpBuffer : buffer to read memory to
+  nSize : number of bytes to read
+  lpNumberOfBytesRead: number of bytes read (optional)
+
+Return
+  true read memory is successful, false if not.
+--*/
+BOOL
+PALAPI
+PAL_ReadMemory(
+    IN DWORD processId,
+    IN LPCVOID lpBaseAddress,
+    IN LPVOID lpBuffer,
+    IN SIZE_T nSize,
+    OUT SIZE_T* lpNumberOfBytesRead)
+{
+    Volatile<SIZE_T> numberOfBytesRead = 0;
+    Volatile<BOOL> ret = TRUE;
+
+#if HAVE_VM_READ
+    vm_map_t task;
+    SIZE_T offset;
+    LONG_PTR bytesToRead;
+    int* lpBaseAddressAligned;
+
+    acquireTaskportRight();
+
+    kern_return_t result = task_for_pid(mach_task_self(), processId, &task);
+    if (result != KERN_SUCCESS)
+    {
+        ERROR("No Mach task for pid %d\n", processId);
+        ret = FALSE;
+        goto exit;
+    }
+    // vm_read_overwrite usually requires that the address be page-aligned
+    // and the size be a multiple of the page size.  We can't differentiate
+    // between the cases in which that's required and those in which it
+    // isn't, so we do it all the time.
+    lpBaseAddressAligned = (int*)((SIZE_T) lpBaseAddress & ~(PAGE_SIZE - 1));
+    offset = ((SIZE_T) lpBaseAddress & (PAGE_SIZE - 1));
+    char *data;
+    data = (char*)alloca(PAGE_SIZE);
+    while (nSize > 0)
+    {
+        vm_size_t bytesRead;
+        
+        bytesToRead = PAGE_SIZE - offset;
+        if (bytesToRead > (LONG_PTR)nSize)
+        {
+            bytesToRead = nSize;
+        }
+        bytesRead = PAGE_SIZE;
+        result = vm_read_overwrite(task, (vm_address_t) lpBaseAddressAligned, PAGE_SIZE, (vm_address_t) data, &bytesRead);
+        if (result != KERN_SUCCESS || bytesRead != PAGE_SIZE)
+        {
+            ERROR("vm_read_overwrite failed for %d bytes from %p in %d: %d\n", PAGE_SIZE, (char *) lpBaseAddressAligned, task, result);
+            ret = FALSE;
+            goto exit;
+        }
+        memcpy((LPSTR)lpBuffer + numberOfBytesRead, data + offset, bytesToRead);
+        numberOfBytesRead.Store(numberOfBytesRead.Load() + bytesToRead);
+        lpBaseAddressAligned = (int*)((char*)lpBaseAddressAligned + PAGE_SIZE);
+        nSize -= bytesToRead;
+        offset = 0;
+    }
+exit:
+#else
+    ret = FALSE;
+#endif // HAVE_VM_READ
+    if (lpNumberOfBytesRead)
+    {
+        *lpNumberOfBytesRead = numberOfBytesRead;
+    }
+    return ret;
+}
+
+/*++
+Function:
+  PAL_ReadMemory
+
+Abstract
+  Reads memory on macOS. Return error for any other platform.
+
+Parameter
+  processId : process to read from
+  lpBaseAddress : address of memory to read
+  lpBuffer : buffer to read memory to
+  nSize : number of bytes to read
+  lpNumberOfBytesRead: number of bytes read (optional)
+
+Return
+  true read memory is successful, false if not.
+--*/
+BOOL
+PALAPI
+PAL_ReadMemory(
+    IN DWORD processId,
+    IN LPCVOID lpBaseAddress,
+    IN LPVOID lpBuffer,
+    IN SIZE_T nSize,
+    OUT SIZE_T* lpNumberOfBytesRead)
+{
+    Volatile<SIZE_T> numberOfBytesRead = 0;
+    Volatile<BOOL> ret = TRUE;
+
+#if HAVE_VM_READ
+    vm_map_t task;
+    SIZE_T offset;
+    LONG_PTR bytesToRead;
+    int* lpBaseAddressAligned;
+
+    kern_return_t result = task_for_pid(mach_task_self(), processId, &task);
+    if (result != KERN_SUCCESS)
+    {
+        ERROR("No Mach task for pid %d\n", processId);
+        ret = FALSE;
+        goto exit;
+    }
+    // vm_read_overwrite usually requires that the address be page-aligned
+    // and the size be a multiple of the page size.  We can't differentiate
+    // between the cases in which that's required and those in which it
+    // isn't, so we do it all the time.
+    lpBaseAddressAligned = (int*)((SIZE_T) lpBaseAddress & ~(PAGE_SIZE - 1));
+    offset = ((SIZE_T) lpBaseAddress & (PAGE_SIZE - 1));
+    char *data;
+    data = (char*)alloca(PAGE_SIZE);
+    while (nSize > 0)
+    {
+        vm_size_t bytesRead;
+        
+        bytesToRead = PAGE_SIZE - offset;
+        if (bytesToRead > (LONG_PTR)nSize)
+        {
+            bytesToRead = nSize;
+        }
+        bytesRead = PAGE_SIZE;
+        result = vm_read_overwrite(task, (vm_address_t) lpBaseAddressAligned, PAGE_SIZE, (vm_address_t) data, &bytesRead);
+        if (result != KERN_SUCCESS || bytesRead != PAGE_SIZE)
+        {
+            ERROR("vm_read_overwrite failed for %d bytes from %p in %d: %d\n", PAGE_SIZE, (char *) lpBaseAddressAligned, task, result);
+            ret = FALSE;
+            goto exit;
+        }
+        memcpy((LPSTR)lpBuffer + numberOfBytesRead, data + offset, bytesToRead);
+        numberOfBytesRead.Store(numberOfBytesRead.Load() + bytesToRead);
+        lpBaseAddressAligned = (int*)((char*)lpBaseAddressAligned + PAGE_SIZE);
+        nSize -= bytesToRead;
+        offset = 0;
+    }
+exit:
+#else
+    ret = FALSE;
+#endif // HAVE_VM_READ
+    if (lpNumberOfBytesRead)
+    {
+        *lpNumberOfBytesRead = numberOfBytesRead;
+    }
     return ret;
 }
 

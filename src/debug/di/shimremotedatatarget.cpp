@@ -279,6 +279,8 @@ ShimRemoteDataTarget::ReadVirtual(
         }
     }
     else
+#else
+    if (!PAL_ReadMemory(m_processId, CORDB_ADDRESS_TO_PTR(address), pBuffer, cbRequestSize, &read))
 #endif
     {
         hr = m_pTransport->ReadMemory(reinterpret_cast<BYTE *>(CORDB_ADDRESS_TO_PTR(address)), pBuffer, cbRequestSize);
