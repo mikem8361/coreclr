@@ -192,7 +192,6 @@ ThreadInfo::UnwindThread(CrashInfo& crashInfo, IXCLRDataProcess* pClrDataProcess
 bool 
 ThreadInfo::GetRegistersWithPTrace()
 {
-#if defined(__aarch64__)
     struct iovec gpRegsVec = { &m_gpRegisters, sizeof(m_gpRegisters) };
     if (ptrace((__ptrace_request)PTRACE_GETREGSET, m_tid, NT_PRSTATUS, &gpRegsVec) == -1)
     {
@@ -208,17 +207,7 @@ ThreadInfo::GetRegistersWithPTrace()
         return false;
     }
     assert(sizeof(m_fpRegisters) == fpRegsVec.iov_len);
-#else
-    if (ptrace((__ptrace_request)PTRACE_GETREGS, m_tid, nullptr, &m_gpRegisters) == -1)
-    {
-        fprintf(stderr, "ptrace(GETREGS, %d) FAILED %d (%s)\n", m_tid, errno, strerror(errno));
-        return false;
-    }
-    if (ptrace((__ptrace_request)PTRACE_GETFPREGS, m_tid, nullptr, &m_fpRegisters) == -1)
-    {
-        fprintf(stderr, "ptrace(GETFPREGS, %d) FAILED %d (%s)\n", m_tid, errno, strerror(errno));
-        return false;
-    }
+
 #if defined(__i386__)
     if (ptrace((__ptrace_request)PTRACE_GETFPXREGS, m_tid, nullptr, &m_fpxRegisters) == -1)
     {
@@ -236,7 +225,6 @@ ThreadInfo::GetRegistersWithPTrace()
         fprintf(stderr, "ptrace(PTRACE_GETVFPREGS, %d) FAILED %d (%s)\n", m_tid, errno, strerror(errno));
         return false;
     }
-#endif
 #endif
     return true;
 }
