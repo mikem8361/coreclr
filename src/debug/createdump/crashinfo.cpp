@@ -200,15 +200,11 @@ CrashInfo::GatherCrashInfo(MINIDUMP_TYPE minidumpType)
     }
     // Add all the heap read/write memory regions (m_otherMappings contains the heaps). On Alpine
     // the heap regions are marked RWX instead of just RW.
-    else if (minidumpType & MiniDumpWithPrivateReadWriteMemory)
+    else if (minidumpType & MiniDumpWithModuleHeaders)
     {
-        for (const MemoryRegion& region : m_otherMappings)
+        for (const MemoryRegion& region : m_moduleMappings)
         {
-            uint32_t permissions = region.Permissions();
-            if (permissions == (PF_R | PF_W) || permissions == (PF_R | PF_W | PF_X))
-            {
-                InsertMemoryBackedRegion(region);
-            }
+            InsertMemoryBackedRegion(region);
         }
     }
     // Gather all the useful memory regions from the DAC

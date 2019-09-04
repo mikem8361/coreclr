@@ -21,6 +21,7 @@ int __cdecl main(const int argc, const char* argv[])
 {
     MINIDUMP_TYPE minidumpType = MiniDumpWithPrivateReadWriteMemory;
     const char* dumpPathTemplate = nullptr;
+    bool modules = false;
     pid_t pid = 0;
 
     int exitCode = PAL_InitializeDLL();
@@ -57,6 +58,10 @@ int __cdecl main(const int argc, const char* argv[])
             {
                 minidumpType = MiniDumpWithFullMemory;
             }
+            else if ((strcmp(*argv, "-m") == 0) || (strcmp(*argv, "--modules") == 0))
+            {
+                modules = true;
+            }
             else if ((strcmp(*argv, "-d") == 0) || (strcmp(*argv, "--diag") == 0))
             {
                 g_diagnostics = true;
@@ -66,6 +71,11 @@ int __cdecl main(const int argc, const char* argv[])
             }
             argv++;
         }
+    }
+
+    if (modules)
+    {
+        minidumpType = (MINIDUMP_TYPE)(minidumpType | MiniDumpWithModuleHeaders);
     }
 
     if (pid != 0)

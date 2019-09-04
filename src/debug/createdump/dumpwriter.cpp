@@ -113,7 +113,14 @@ DumpWriter::WriteDump()
     // is used to store the actual program header count.
 
     // PT_NOTE + number of memory regions
-    uint64_t phnum = 1 + m_crashInfo.MemoryRegions().size();
+    uint64_t phnum = 1;
+    for (const MemoryRegion& memoryRegion : m_crashInfo.MemoryRegions())
+    {
+        if (memoryRegion.IsBackedByMemory())
+        {
+            phnum++;
+        }
+    }
 
     if (phnum < PH_HDR_CANARY) {
         ehdr.e_phnum = phnum;
@@ -171,24 +178,19 @@ DumpWriter::WriteDump()
     // Write memory region note headers
     for (const MemoryRegion& memoryRegion : m_crashInfo.MemoryRegions())
     {
-        phdr.p_flags = memoryRegion.Permissions();
-        phdr.p_vaddr = memoryRegion.StartAddress();
-        phdr.p_memsz = memoryRegion.Size();
-
         if (memoryRegion.IsBackedByMemory())
         {
+            phdr.p_flags = memoryRegion.Permissions();
+            phdr.p_vaddr = memoryRegion.StartAddress();
+            phdr.p_memsz = memoryRegion.Size();
+
             offset += filesz;
             phdr.p_filesz = filesz = memoryRegion.Size();
             phdr.p_offset = offset;
-        }
-        else
-        {
-            phdr.p_filesz = 0;
-            phdr.p_offset = 0;
-        }
 
-        if (!WriteData(&phdr, sizeof(phdr))) {
-            return false;
+            if (!WriteData(&phdr, sizeof(phdr))) {
+                return false;
+            }
         }
     }
 
@@ -227,7 +229,7 @@ DumpWriter::WriteDump()
         }
     }
 
-    TRACE("Writing %zd memory regions to core file\n", m_crashInfo.MemoryRegions().size());
+    TRACE("Writing %zd memory regions to core file\n", phnum - 1);
 
     // Read from target process and write memory regions to core
     uint64_t total = 0;
