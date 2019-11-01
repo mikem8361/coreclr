@@ -651,7 +651,7 @@ extern "C" {
 // These two functions are largely just for marking code
 // that is not fully converted.  DacWarning prints a debug
 // message, while DacNotImpl throws a not-implemented exception.
-void __cdecl DacWarning(__in __in_z char* format, ...);
+void __cdecl DacWarning(__in __in_z const char* format, ...);
 void DacNotImpl(void);
 
 void    DacError(HRESULT err);
@@ -2442,11 +2442,7 @@ typedef DPTR(PTR_PCODE) PTR_PTR_PCODE;
 #endif
 
 // Helper macro for tracking EnumMemoryRegions progress.
-#if 0
 #define EMEM_OUT(args) DacWarning args
-#else
-#define EMEM_OUT(args)
-#endif
 
 // Macros like MAIN_CLR_MODULE_NAME* for the DAC module
 #define MAIN_DAC_MODULE_NAME_W  W("mscordaccore")
