@@ -31,6 +31,21 @@ BOOL STDMETHODCALLTYPE EEDllMain( // TRUE on success, FALSE on error.
                        DWORD        dwReason,               // Reason for loading.
                        LPVOID       lpReserved);                // Unused.
 
+#ifdef FEATURE_PAL
+
+struct DotNetExport
+{
+    const char* Signature;
+    const BYTE DacBuildId[20];
+    const BYTE DbiBuildId[20];
+};
+
+extern "C" struct DotNetExport DotNetRuntime = {
+    "DotNetRuntime"
+};
+
+#endif // FEATURE_PAL
+
 // Globals.
 HINSTANCE g_hThisInst;  // This library.
 
