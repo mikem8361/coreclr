@@ -35,18 +35,16 @@ BOOL STDMETHODCALLTYPE EEDllMain( // TRUE on success, FALSE on error.
 
 struct DotNetExport
 {
-    const char* Signature;
+    const char Signature[14];
     const BYTE DacBuildId[20];
     const BYTE DbiBuildId[20];
 };
 
-//extern "C" struct DotNetExport DotNetRuntime = {
-//    "DotNetRuntime"
-//};
-
-extern "C" const char* DotNetRuntime = "DotNetRuntime";
-const BYTE DacBuildId[20] = { 1, 2, 3, 4, 5 };
-const BYTE DbiBuildId[20] = { 6, 7, 8, 9, 10 };
+extern "C" struct DotNetExport DotNetRuntime = {
+    { "DotNetRuntime" },
+    { 1, 2, 3, 4, 5 },
+    { 6, 7, 8, 9, 10 }
+};
 
 #endif // FEATURE_PAL
 
