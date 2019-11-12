@@ -40,9 +40,13 @@ struct DotNetExport
     const BYTE DbiBuildId[20];
 };
 
-extern "C" struct DotNetExport DotNetRuntime = {
-    "DotNetRuntime"
-};
+//extern "C" struct DotNetExport DotNetRuntime = {
+//    "DotNetRuntime"
+//};
+
+extern "C" const char* DotNetRuntime = "DotNetRuntime";
+const BYTE DacBuildId[20] = { 1, 2, 3, 4, 5 };
+const BYTE DbiBuildId[20] = { 6, 7, 8, 9, 10 };
 
 #endif // FEATURE_PAL
 
