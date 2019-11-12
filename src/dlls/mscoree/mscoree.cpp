@@ -33,15 +33,15 @@ BOOL STDMETHODCALLTYPE EEDllMain( // TRUE on success, FALSE on error.
 
 #ifdef FEATURE_PAL
 
-struct DotNetExport
+struct DotNetRuntimeStruct
 {
-    const char Signature[14];
+    const char Signature[18];
     const BYTE DacBuildId[20];
     const BYTE DbiBuildId[20];
 };
 
-extern "C" struct DotNetExport DotNetRuntime = {
-    { "DotNetRuntime" },
+extern "C" struct DotNetRuntimeStruct DotNetRuntimeInfo = {
+    { "DotNetRuntimeInfo" },
     { 1, 2, 3, 4, 5 },
     { 6, 7, 8, 9, 10 }
 };
