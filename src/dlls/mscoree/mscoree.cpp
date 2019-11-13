@@ -40,7 +40,9 @@ struct DotNetRuntimeStruct
     const BYTE DbiBuildId[20];
 };
 
-extern "C" __attribute__ ((visibility ("default"))) 
+extern "C" 
+__attribute__ ((dllexport))
+__attribute__ ((visibility ("default"))) 
 struct DotNetRuntimeStruct DotNetRuntimeInfo = {
     { "DotNetRuntimeInfo" },
     { 1, 2, 3, 4, 5 },
