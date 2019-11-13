@@ -19,3 +19,4 @@ PAL_UnregisterModule
 CoreDllMain
 DllMain
 GetCLRRuntimeHost
+DotNetRuntimeInfo

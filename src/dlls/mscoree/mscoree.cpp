@@ -41,7 +41,6 @@ struct DotNetRuntimeStruct
 };
 
 extern "C" 
-__attribute__ ((dllexport))
 __attribute__ ((visibility ("default"))) 
 struct DotNetRuntimeStruct DotNetRuntimeInfo = {
     { "DotNetRuntimeInfo" },
